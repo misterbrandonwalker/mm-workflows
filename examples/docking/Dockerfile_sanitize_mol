@@ -1,0 +1,18 @@
+
+# docker build -f Dockerfile_sanitize_mol .
+
+FROM continuumio/miniconda3:4.12.0
+
+RUN apt-get update \
+ && apt-get install -yq --no-install-recommends \
+    p7zip-full \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN conda install -c conda-forge openbabel --yes
+
+RUN conda init bash
+
+COPY sanitize_mol.py /. 
+
+

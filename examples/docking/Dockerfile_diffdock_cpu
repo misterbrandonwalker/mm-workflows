@@ -1,0 +1,62 @@
+# Building image
+# Check which docker tags exist for nvidia/cuda https://hub.docker.com/r/nvidia/cuda/tags
+# docker build -f Dockerfile_diffdock_cpu --build-arg CUDA=cpu --build-arg CUDA_VER=11.3.1 --build-arg OS=cudnn8-devel-ubuntu20.04 --build-arg TORCH=1.12.0 .
+
+ARG CUDA_VER
+ARG CUDA
+ARG OS
+ARG TORCH
+FROM nvidia/cuda:$CUDA_VER-$OS
+# for some reason have to have arg before and after FROM??
+ARG DEBIAN_FRONTEND=noninteractive
+ARG CUDA_VER
+ARG CUDA
+ARG TORCH
+ENV CUDA_VER ${CUDA_VER}
+ENV CUDA_VER ${CUDA}
+ENV TORCH ${TORCH}
+
+
+
+# Prerequisites
+RUN apt-get -y update
+RUN apt-get -y install git
+RUN apt-get -y install build-essential
+RUN apt-get -y install gfortran 
+RUN apt-get -y install texinfo
+RUN apt-get -y install wget
+RUN apt-get -y install vim
+RUN apt-get install -y curl
+RUN apt-get -y install rsync grsync
+RUN apt-get clean
+RUN rm -rf /var/lib/apt/lists/*
+
+# Install miniconda
+ENV CONDA_DIR /opt/conda
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+     /bin/bash ~/miniconda.sh -b -p /opt/conda
+ENV PATH="${PATH}:$CONDA_DIR/bin"
+
+RUN conda create "python=3.9" -n diffdock
+
+SHELL ["conda", "run", "-n", "diffdock", "/bin/bash", "-c"]
+
+RUN python -m pip install torch==${TORCH}+${CUDA} -f https://download.pytorch.org/whl/torch_stable.html
+
+RUN python -m pip --no-cache-dir install pyg-lib torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-${TORCH}+${CUDA}.html
+
+RUN git clone https://github.com/gcorso/DiffDock.git
+
+WORKDIR /DiffDock
+
+RUN conda init bash
+
+RUN echo "conda activate diffdock" >> ~/.bashrc
+
+RUN conda run -n diffdock python -m pip install "fair-esm[esmfold]"
+
+RUN conda run -n diffdock python -m pip install PyYAML scipy "networkx[default]" biopython rdkit-pypi e3nn spyrmsd pandas biopandas
+
+RUN conda run -n diffdock python -m inference --protein_ligand_csv data/protein_ligand_example_csv.csv --out_dir results/user_predictions_small --inference_steps 1 --samples_per_complex 1 --batch_size 1 --actual_steps 1 --no_final_step_noise
+
+RUN rm -r results/user_predictions_small

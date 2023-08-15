@@ -54,10 +54,6 @@ inputs:
   inference_steps:
     type: int?
     inputBinding:
-      separate: true
-      prefix: --inference_steps
-    default: 20
-
   samples_per_complex:
     type: int?
     inputBinding:
@@ -96,10 +92,6 @@ inputs:
   confidence_model_dir:
     type: string?
     inputBinding:
-      separate: true
-      prefix: --confidence_model_dir
-    default:  /DiffDock/workdir/paper_confidence_model
-
   no_final_step_noise:
     type: boolean?
     inputBinding:

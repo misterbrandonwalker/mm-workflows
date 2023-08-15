@@ -60,10 +60,6 @@ inputs:
   inference_steps:
     type: int?
     inputBinding:
-      separate: true
-      prefix: --inference_steps
-    default: 20
-
   samples_per_complex:
     type: int?
     inputBinding:
