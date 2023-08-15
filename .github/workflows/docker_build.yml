@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         # NOTE: Use a matrix (instead of dockerBuild.sh) for parallelism
-        dockerfile: [vina, scripts, biosimspace, PDBBind_refined]  # skip data/
+        dockerfile: [vina, scripts, biosimspace, PDBBind_refined, sanitize_mol, rmsd_poses, pymol_docking_poses, rank_diffdock_poses, create_diffdock_inputs, diffdock_cpu, diffdock_gpu]  # skip data/
     runs-on: [ubuntu-latest]
 
     steps:

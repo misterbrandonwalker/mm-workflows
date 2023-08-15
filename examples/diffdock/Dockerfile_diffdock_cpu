@@ -1,0 +1,41 @@
+# docker build -f Dockerfile_diffdock_cpu .
+
+FROM debian:stable-slim
+
+# Install conda / mamba
+RUN apt-get update && apt-get install -y wget git build-essential rsync
+
+RUN CONDA="Mambaforge-Linux-x86_64.sh" && \
+    wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/$CONDA && \
+    chmod +x $CONDA && \
+    ./$CONDA -b -p /mambaforge && \
+    rm -f $CONDA
+ENV PATH /mambaforge/bin:$PATH
+
+RUN conda create "python=3.9" -n diffdock
+
+SHELL ["conda", "run", "-n", "diffdock", "/bin/bash", "-c"]
+
+RUN pip install torch==1.12.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+
+RUN pip install pyg-lib torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-1.12.0+cpu.html
+
+RUN git clone https://github.com/gcorso/DiffDock.git
+
+WORKDIR /DiffDock
+
+RUN conda init bash
+
+RUN echo "conda activate diffdock" >> ~/.bashrc
+
+RUN pip install "fair-esm[esmfold]" PyYAML scipy "networkx[default]" biopython rdkit-pypi e3nn spyrmsd pandas biopandas
+
+RUN conda run -n diffdock python -m inference --protein_ligand_csv data/protein_ligand_example_csv.csv --out_dir results/user_predictions_small --inference_steps 1 --samples_per_complex 1 --batch_size 1 --actual_steps 1 --no_final_step_noise
+
+RUN rm -r results/user_predictions_small
+
+RUN mamba clean --all --yes
+
+RUN pip cache purge
+
+RUN apt-get clean

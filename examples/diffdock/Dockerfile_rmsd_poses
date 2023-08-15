@@ -1,0 +1,27 @@
+
+# docker build -f Dockerfile_rmsd_poses .
+
+FROM debian:stable-slim
+
+# Install conda / mamba
+RUN apt-get update && apt-get install -y wget
+
+RUN CONDA="Mambaforge-Linux-x86_64.sh" && \
+    wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/$CONDA && \
+    chmod +x $CONDA && \
+    ./$CONDA -b -p /mambaforge && \
+    rm -f $CONDA
+ENV PATH /mambaforge/bin:$PATH
+
+RUN conda install -c conda-forge rdkit openbabel --yes 
+
+RUN conda init bash
+
+COPY rmsd_poses.py /. 
+
+RUN mamba clean --all --yes
+
+RUN pip cache purge
+
+RUN apt-get clean
+
