@@ -1,0 +1,30 @@
+
+# docker build -f Dockerfile_pymol_superpose .
+
+FROM debian:stable-slim
+
+# Install conda / mamba
+RUN apt-get update && apt-get install -y wget libgl1
+
+RUN CONDA="Mambaforge-Linux-x86_64.sh" && \
+    wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/$CONDA && \
+    chmod +x $CONDA && \
+    ./$CONDA -b -p /mambaforge && \
+    rm -f $CONDA
+ENV PATH /mambaforge/bin:$PATH
+
+RUN conda config --add channels conda-forge
+
+RUN conda config --set channel_priority strict
+
+RUN conda install pymol-open-source==2.5.0 --yes
+
+RUN conda init bash
+
+COPY pymol_superpose.py /. 
+
+RUN mamba clean --all --yes
+
+RUN pip cache purge
+
+RUN apt-get clean

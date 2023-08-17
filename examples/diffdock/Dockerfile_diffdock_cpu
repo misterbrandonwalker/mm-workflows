@@ -1,6 +1,20 @@
+<<<<<<< HEAD
 # docker build -f Dockerfile_diffdock_cpu .
 
 FROM debian:stable-slim
+=======
+# docker build -f Dockerfile_diffdock_cpu --build-arg CUDA=cpu --build-arg TORCH=1.12.0 .
+
+ARG CUDA
+ARG TORCH
+FROM debian:stable-slim
+# for some reason have to have arg before and after FROM??
+ARG DEBIAN_FRONTEND=noninteractive
+ARG CUDA
+ARG TORCH
+ENV TORCH ${TORCH}
+ENV CUDA ${CUDA}
+>>>>>>> ae3dc5a... Add benchmarking workflow steps to test DiffDock in high-throughput fashion
 
 # Install conda / mamba
 RUN apt-get update && apt-get install -y wget git build-essential rsync
@@ -16,9 +30,15 @@ RUN conda create "python=3.9" -n diffdock
 
 SHELL ["conda", "run", "-n", "diffdock", "/bin/bash", "-c"]
 
+<<<<<<< HEAD
 RUN pip install torch==1.12.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
 
 RUN pip install pyg-lib torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-1.12.0+cpu.html
+=======
+RUN pip install torch==${TORCH}+${CUDA} -f https://download.pytorch.org/whl/torch_stable.html
+
+RUN pip install pyg-lib torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-${TORCH}+${CUDA}.html
+>>>>>>> ae3dc5a... Add benchmarking workflow steps to test DiffDock in high-throughput fashion
 
 RUN git clone https://github.com/gcorso/DiffDock.git
 

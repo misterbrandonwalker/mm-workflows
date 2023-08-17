@@ -7,8 +7,8 @@
 # By default, each directory is associated with the namespace 'global', as shown.
 
 # Namespace Directory
-global      examples/
-global      docs/tutorials/
+global      ../mm-workflows/examples/
+global      ../mm-workflows/docs/tutorials/
 gpu_diffdock         ../mm-workflows/diffdock_gpu/
 cpu_diffdock         ../mm-workflows/diffdock_cpu/
 # foo       a/relative/path/

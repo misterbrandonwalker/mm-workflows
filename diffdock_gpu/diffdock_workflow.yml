@@ -26,6 +26,7 @@ inputs:
       type: array
       items: File
 
+
 steps:
     - extract_zipped_files:
         in:
@@ -69,11 +70,25 @@ steps:
           output_poses: "&output_poses"
           output_diffusion_trajectory: "&diffusion_trajectory"
 
+    - modify_filenames:
+        in:
+          file_names: "*diffusion_trajectory"
+          inference_steps: ~inference_steps
+          samples_per_complex: ~samples_per_complex
+          output_files: "&mod_diffusion_trajectory"
+
+    - modify_filenames:
+        in:
+          file_names: "*output_poses"
+          inference_steps: ~inference_steps
+          samples_per_complex: ~samples_per_complex
+          output_files: "&mod_output_files"
+
     - rmsd_pose_filter:
         in:
           crystal_pose_path: "*ligand_path"
-          predicted_poses: "*output_poses"
-          diffusion_trajectory: "*diffusion_trajectory"
+          predicted_poses: "*mod_output_files"
+          diffusion_trajectory: "*mod_diffusion_trajectory"
           rmsd_json: "&rmsd"
           centroid_cutoff: ~centroid_cutoff
           filtered_poses: "&filtered_poses"
@@ -85,3 +100,19 @@ steps:
           pdb_path: "*protein_path"
           predicted_poses: "*filtered_poses"
           output_pymol_session: "&output_pymol_session"
+
+    - output_diffdock_parameters:
+        in:
+          top_percent_confidence: ~top_percent_confidence
+          execution_time: "*execution_time"
+          rmsd: "*rmsd"
+          output_json: "&output_json"
+          protein_path: "*protein_file"
+          ligand_path: "*output_file"
+          inference_steps: ~inference_steps
+          samples_per_complex: ~samples_per_complex
+          batch_size: ~batch_size
+          actual_steps: ~actual_steps
+          no_final_step_noise: ~no_final_step_noise
+          top_n_confident: ~top_n_confident
+          pymol_session: "*output_pymol_session"

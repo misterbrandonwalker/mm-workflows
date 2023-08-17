@@ -1,9 +1,9 @@
 steps:
 
-  - prep_complex:
+  - pdbbind_subset:
       in:
-        receptor: 6qtw_protein_processed.pdb
-        ligand: 6qtw_ligand.sdf
+        pdb_ids: "input_pdbs.txt"
+        max_output: 400
         output_pdb_files: "&output_pdb_files"
         output_ligand_files: "&output_ligand_files"
 
@@ -11,12 +11,12 @@ steps:
       in:
         cache: "&cached_file"
 
-  - inputs_diffdock:
+  - benchmark_inputs_diffdock:
       in:
         protein_path_array: "*output_pdb_files"
         ligand_path_array: "*output_ligand_files"
-        samples_per_complex: 20
-        inference_steps: 20
+        samples_per_complex_array: [20]
+        inference_steps_array: [20]
         batch_size: 16
         actual_steps: 20
         no_final_step_noise: true
@@ -24,8 +24,8 @@ steps:
         top_percent_confidence: 33
         centroid_cutoff: 5
         use_clustering_filter: false
-        samples_per_complex_out: "&samples_per_complex"
-        inference_steps_out: "&inference_steps"
+        samples_per_complex: "&samples_per_complex"
+        inference_steps: "&inference_steps"
         batch_size_out: "&batch_size"
         actual_steps_out: "&actual_steps"
         no_final_step_noise_out: "&no_final_step_noise"
@@ -42,8 +42,10 @@ steps:
         second_array: "*ligand_path_bench"
         zipped_array: "&protein_ligand_bench"
 
+
   - diffdock_workflow.yml:
-      scatter: [ligand_protein_paths]
+      scatter: [samples_per_complex, inference_steps, ligand_protein_paths]
+      scatterMethod: flat_crossproduct
       in:
         ligand_protein_paths: "*protein_ligand_bench"
         inference_steps: "*inference_steps"
@@ -57,15 +59,20 @@ steps:
         use_clustering_filter: "*use_clustering_filter"
         cache: "*cached_file"
 
+  - evaluate_benchmark_diffdock:
+      in:
+        input_json_files: "*output_json"
+
+
 wic:
   graphviz:
     label: DiffDock
 
   steps:
-    (1, prep_complex):
+    (1, pdbbind_subset):
       wic:
         graphviz:
-          label: Receptor-Ligand Input
+          label: Subset of PDBBind
     (2, copy_diffdock_cache):
       wic:
         graphviz:
@@ -83,3 +90,7 @@ wic:
         namespace: gpu_diffdock
         graphviz:
           label: Scatter DiffDock
+    (6, evaluate_benchmark_diffdock):
+      wic:
+        graphviz:
+          label: Evaluate benchmarks
