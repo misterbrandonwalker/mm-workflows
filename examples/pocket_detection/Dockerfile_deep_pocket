@@ -1,0 +1,24 @@
+# docker build -f Dockerfile_deep_pocket .
+
+FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
+
+# Install conda / mamba
+RUN apt-get update && apt-get install -y wget git build-essential 
+
+RUN CONDA="Mambaforge-Linux-x86_64.sh" && \
+    wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/$CONDA && \
+    chmod +x $CONDA && \
+    ./$CONDA -b -p /mambaforge && \
+    rm -f $CONDA
+ENV PATH /mambaforge/bin:$PATH
+
+RUN conda install fpocket biopython scikit-learn scikit-image wandb prody rdkit pytorch==1.13.0 pytorch-cuda=11.7 -c pytorch -c nvidia -c conda-forge -c anaconda
+
+RUN pip install molgrid
+
+RUN git clone https://github.com/devalab/DeepPocket.git
+
+WORKDIR /DeepPocket
+
+RUN conda init bash
+
