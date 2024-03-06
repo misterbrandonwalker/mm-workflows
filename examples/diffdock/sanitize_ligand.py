@@ -5,9 +5,10 @@ Handle molecules with sanitization errors by assign formal charge based on valen
 # https://depth-first.com/articles/2020/02/10/a-comprehensive-treatment-of-aromaticity-in-the-smiles-language/
 import argparse
 from pathlib import Path
-from typing import Dict, Tuple, Optional
-from types import FrameType
-import signal  # only unix supported
+from typing import Dict, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+import os
+import logging
 
 import rdkit
 from rdkit import Chem
@@ -18,23 +19,15 @@ parser.add_argument('--input_small_mol_ligand', type=str, help='Ligand file')
 args = parser.parse_args()
 input_small_mol_ligand = Path(args.input_small_mol_ligand).name
 
-
-class TimeoutException(Exception):
-    pass
-
-
-def timeout(seconds: int, error_message: str = 'Timeout') -> None:
-    """Time out for conformer generation, only works for unix. For windows have to ignore mypy error.
-
-    Args:
-        seconds (int): The time in seconds to wait before timing out
-        error_message (str, optional): The error message to display. Defaults to 'Timeout'.
-    """
-    def handle_timeout(signum: int, frame: Optional[FrameType]) -> None:
-        raise TimeoutException(error_message)
-
-    signal.signal(signal.SIGALRM, handle_timeout)
-    signal.alarm(seconds)
+if os.getenv('ERROR_LOGGING') == "ON":
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.WARNING)
+    script_filename = Path(__file__).stem
+    handler = logging.FileHandler(f"{script_filename}.log")
+    handler.setLevel(logging.WARNING)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
 def adjust_formal_charges(molecule: Chem.SDMolSupplier) -> Chem.SDMolSupplier:
@@ -83,7 +76,7 @@ def adjust_formal_charges(molecule: Chem.SDMolSupplier) -> Chem.SDMolSupplier:
 # for some ligands can take up to minutes to generate conformer!!
 
 
-def generate_conformer(molecule: Chem.SDMolSupplier, timeout_value: int = 5) -> None:
+def generate_conformer(molecule: Chem.SDMolSupplier) -> None:
     """ Generate conformer for molecule. Sometimes rdkit embedding can fail,
       so use random coordinates if failed at first.
 
@@ -91,8 +84,6 @@ def generate_conformer(molecule: Chem.SDMolSupplier, timeout_value: int = 5) -> 
         molecule (Chem.SDMolSupplier): The rdkit molecule object
         timeout_value (float): The time in seconds to wait before timing out
     """
-    # Set up the signal handler for the timeout
-    timeout(timeout_value)
     ps = AllChem.ETKDGv2()
     confid = AllChem.EmbedMolecule(molecule, ps)
     if confid == -1:
@@ -100,8 +91,6 @@ def generate_conformer(molecule: Chem.SDMolSupplier, timeout_value: int = 5) -> 
         AllChem.EmbedMolecule(molecule, ps)
         # only want to catch error Bad Conformation Id,  dont need to spend time optimizing
         AllChem.MMFFOptimizeMolecule(molecule, confId=0, maxIters=1)
-
-    signal.alarm(0)
 
 
 def is_valid_ligand(molecule: Chem.SDMolSupplier) -> Tuple[bool, bool, Chem.SDMolSupplier]:
@@ -121,7 +110,16 @@ def is_valid_ligand(molecule: Chem.SDMolSupplier) -> Tuple[bool, bool, Chem.SDMo
     use_symlink = True
     try:
         Chem.SanitizeMol(molecule)
-        generate_conformer(molecule)
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(generate_conformer, molecule)]
+            try:
+                for future in as_completed(futures, timeout=5):
+                    future.result()
+            except TimeoutError:
+                if os.getenv('ERROR_LOGGING') == "ON":
+                    logger.warning("Timeout")
+                valid_lig = False
+
     except rdkit.Chem.rdchem.KekulizeException as e:
         valid_lig = False
         # Not handling kekulization error now so just remove file to prevent DiffDock execution

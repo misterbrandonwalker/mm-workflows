@@ -15,6 +15,9 @@ hints:
     dockerPull:  mrbrandonwalker/sanitize_ligand
 
 requirements:
+  EnvVarRequirement:
+    envDef:
+      ERROR_LOGGING: $(inputs.error_logging)
   InlineJavascriptRequirement: {}
   InitialWorkDirRequirement: # conditionally overwrite the input ligand, otherwise cwltool will symlink to the original
     listing:
@@ -28,6 +31,13 @@ inputs:
       - edam:format_3814
     inputBinding:
       prefix: --input_small_mol_ligand
+
+  error_logging:
+    label: Enable or disable error logging
+    doc: |-
+      Enable or disable error logging
+    type: string?
+    default: "ON"
 
   output_ligand:
     type: string?
@@ -57,6 +67,13 @@ outputs:
           return valid;
 
         }
+
+  stdout:
+    type: File
+    outputBinding:
+      glob: stdout
+
+stdout: stdout
 
 $namespaces:
   edam: https://edamontology.org/
