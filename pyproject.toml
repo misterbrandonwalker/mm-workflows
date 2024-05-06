@@ -129,7 +129,10 @@ warn_return_any = true
 # Note that if you want to exclude multiple regexes, you have to concatenate
 # them with |, and sometimes it doesn't even work. It is much easier to
 # just use the [mypy-*] notation below with ignore_errors = True
-# exclude =
+
+# mypy error in rdkit source code
+# /home/runner/miniconda3/envs/mm/lib/python3.9/site-packages/rdkit-stubs/Chem/rdMolDescriptors.pyi:247: error: Duplicate argument "self" in function definition
+exclude = ["^rd.*$"]
 
 # Allows disabling one or multiple error codes globally.
 # disable_error_code = ["ignore-missing-imports"] # comma-separated list of strings
