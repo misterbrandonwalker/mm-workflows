@@ -1,0 +1,14 @@
+steps:
+- topology_check_0.1.0:
+    in:
+      file1: !ii pdbbind_protein_mdanalysis_1.pdb
+      file2: !ii pdbbind_protein_openmm_1.pdb
+
+wic:
+  graphviz:
+    label: Virtual Screening Demo
+  steps:
+    (1, topology_check_0.1.0):
+      wic:
+        graphviz:
+          label: topology_check

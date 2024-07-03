@@ -1,5 +1,0 @@
-FROM python
-# No dependencies; only python std lib
-
-ADD autodock_vina_filter.py .
-ADD Dockerfile_autodock_vina_filter .
